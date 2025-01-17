@@ -28,3 +28,27 @@ public abstract class Shape {
      * @param strokeColor The stroke color of the shape.
      * @param fillColor   The fill color of the shape.
      */
+    public Shape(String type, double x, double y, Color strokeColor, Color fillColor) {
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        this.strokeColor = strokeColor;
+        this.fillColor = fillColor;
+    }
+
+
+    // Getter for type
+    public String getType() {
+        return type;
+    }
+
+    /**
+     * Default constructor to create a shape with default properties.
+     * Sets position to (0, 0) and color to black.
+     */
+    public Shape() {
+        this.x = 0;
+        this.y = 0;
+        this.color = Color.BLACK; // Default color
+    }
+
