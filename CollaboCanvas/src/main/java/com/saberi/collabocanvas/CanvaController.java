@@ -388,5 +388,186 @@ public class CanvaController {
         updateButtonStyles();
     }
 
+    ates the styles of all tool buttons based on the current mode.
+            */
+    private void updateButtonStyles() {
+        // Update pen and eraser button styles
+        penButton.setStyle(
+                "pen".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" :
+                        "-fx-background-color: #00c8ff; -fx-text-fill: white;"
+        );
+        eraserButton.setStyle(
+                "eraser".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" :
+                        "-fx-background-color: #00c8ff; -fx-text-fill: white;"
+        );
+
+        // Update shape button styles
+        rectangleButton.setStyle("rectangle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+        squareButton.setStyle("square".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+        circleButton.setStyle("circle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+        triangleButton.setStyle("triangle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+    }
+    /**
+     * Adds text to the canvas.
+     *
+     * @param x    The X-coordinate of the text position.
+     * @param y    The Y-coordinate of the text position.
+     * @param text The text to add.
+     */
+    // Add a list to store the added texts
+    // Add to your existing canvas drawing logic
+    private void addTextToCanvas(double x, double y, String text) {
+        System.out.println("Adding text to canvas: " + text + " at (" + x + ", " + y + ")");
+        gc.setFont(Font.font("Arial", penSize * 5)); // Use dynamic font size
+        gc.setFill(penColor); // Set color
+        gc.fillText(text, x, y); // Draw text
+
+        // Store text as a shape
+        shapes.add(new TextShape(x, y, text, penColor)); // Add text as a shape
+    }
+    /**
+     * Configures the canvas for drawing, including event handlers for mouse actions.
+     *
+     * @param gc The GraphicsContext for the canvas.
+     */
+    private void setupCanvasDrawing(GraphicsContext gc) {
+        // Flag to track if a shape is being drawn
+        AtomicBoolean isDrawingShape = new AtomicBoolean(false);
+
+        // Temporary storage for freehand drawing points
+        List<Double> tempPointsX = new ArrayList<>();
+        List<Double> tempPointsY = new ArrayList<>();
+
+        // Handle mouse press for shape drawing
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+            if ("pen".equals(currentMode)) {
+                gc.beginPath(); // Start a new path
+                gc.moveTo(event.getX(), event.getY());
+                gc.stroke();
+                tempPointsX.clear();
+                tempPointsY.clear();
+                tempPointsX.add(event.getX());
+                tempPointsY.add(event.getY());
+            } else if ("eraser".equals(currentMode)) {
+                gc.beginPath();
+                gc.moveTo(event.getX(), event.getY());
+                gc.stroke();
+            } else if ("rectangle".equals(currentMode) || "square".equals(currentMode) ||
+                    "circle".equals(currentMode) || "triangle".equals(currentMode)) {
+                startX = event.getX();
+                startY = event.getY();
+                isDrawingShape.set(true); // Start drawing shape
+            }
+        });
+
+        // Handle mouse dragged to continue drawing
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
+            if ("pen".equals(currentMode)) {
+                tempPointsX.add(event.getX());
+                tempPointsY.add(event.getY());
+                gc.setLineWidth(penSize); // Use adjustable pen size
+                gc.setStroke(penColor); // Pen uses the selected color
+                gc.lineTo(event.getX(), event.getY());
+                gc.stroke();
+                gc.setLineWidth(penSize);
+
+                // Send drawing data to the server
+                sendDrawingData(event.getX(), event.getY(), penColor.toString(), penSize); // Send the current coordinates and color
+            } else if ("eraser".equals(currentMode)) {
+                gc.setLineWidth(penSize); // Use adjustable eraser size
+                gc.setStroke(Color.WHITE); // Eraser uses white color
+                gc.lineTo(event.getX(), event.getY());
+                gc.stroke();
+
+                // Remove shapes near the eraser's position
+                eraseShape(event.getX(), event.getY());
+            } else if ("rectangle".equals(currentMode) || "square".equals(currentMode) ||
+                    "circle".equals(currentMode) || "triangle".equals(currentMode)) {
+                // Redraw all previous shapes
+                gc.clearRect(0, 0, DrawingCanvas.getWidth(), DrawingCanvas.getHeight());
+                for (Shape shape : shapes) {
+                    shape.draw(gc);
+                }
+
+                // Draw the current shape being dragged
+                if ("rectangle".equals(currentMode)) {
+                    double width = event.getX() - startX;
+                    double height = event.getY() - startY;
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokeRect(startX, startY, width, height);
+                    //sendShapeData(new RectangleShape(startX, startY, width, height, "rectangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                } else if ("square".equals(currentMode)) {
+                    double size = Math.min(Math.abs(event.getX() - startX), Math.abs(event.getY() - startY));
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokeRect(startX, startY, size, size);
+                    //sendShapeData(new SquareShape(size, startX, startY, "square", (Color) gc.getStroke(), (Color) gc.getFill()));
+                } else if ("circle".equals(currentMode)) {
+                    double radius = Math.sqrt(Math.pow(event.getX() - startX, 2) + Math.pow(event.getY() - startY, 2));
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokeOval(startX - radius, startY - radius, 2 * radius, 2 * radius);
+                    //sendShapeData(new CircleShape(startX, startY, radius, "circle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                } else if ("triangle".equals(currentMode)) {
+                    double base = Math.abs(event.getX() - startX);
+                    double height = Math.abs(event.getY() - startY);
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokePolygon(
+                            new double[]{startX, startX + base / 2, startX - base / 2},
+                            new double[]{startY, startY - height, startY - height},
+                            3
+                    );
+                    //sendShapeData(new TriangleShape(startX, startY, base, height, "triangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                }
+            }
+        });
+
+        // Handle mouse release to finalize the shape
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
+            if ("pen".equals(currentMode)) {
+                shapes.add(new FreehandShape(new ArrayList<>(tempPointsX), new ArrayList<>(tempPointsY), penSize));
+            } else if ("eraser".equals(currentMode)) {
+                gc.closePath();
+            } else if ("rectangle".equals(currentMode)) {
+                double width = event.getX() - startX;
+                double height = event.getY() - startY;
+
+                shapes.add(new RectangleShape(startX, startY, width, height, "rectangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new RectangleShape(startX, startY, width, height, "rectangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            } else if ("square".equals(currentMode)) {
+                double size = Math.min(Math.abs(event.getX() - startX), Math.abs(event.getY() - startY));
+                shapes.add(new SquareShape(startX, startY, size, "square", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new SquareShape(size, startX, startY, "square", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            } else if ("circle".equals(currentMode)) {
+                double radius = Math.sqrt(Math.pow(event.getX() - startX, 2) + Math.pow(event.getY() - startY, 2));
+                shapes.add(new CircleShape(startX, startY, radius, "circle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new CircleShape(startX, startY, radius, "circle", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            } else if ("triangle".equals(currentMode)) {
+                double base = Math.abs(event.getX() - startX);
+                double height = Math.abs(event.getY() - startY);
+                shapes.add(new TriangleShape(startX, startY, base, height, "triangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new TriangleShape(startX, startY, base, height, "triangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            }
+        });
+
+        // Handle mouse click for text mode with dynamic text positioning
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            System.out.println("Mouse clicked at: " + event.getX() + ", " + event.getY()); // Debugging output
+            if ("text".equals(currentMode) && !textToAdd.isEmpty()) {
+                System.out.println("Adding text: " + textToAdd); // Debugging output
+                addTextToCanvas(event.getX(), event.getY(), textToAdd);
+                sendTextDataToServer(event.getX(), event.getY(), textToAdd);
+            }
+        });
+    }
+    /**
+     * Connects to the server using the specified host and port.
+     * Establishes input and output streams for communication.
+     *
+     * @param host The hostname or IP address of the server to connect to.
+     * @param port The port number on which the server is listening.
+     */
 }
 
