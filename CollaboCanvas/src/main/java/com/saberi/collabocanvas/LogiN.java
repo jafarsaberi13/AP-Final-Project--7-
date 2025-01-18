@@ -117,6 +117,7 @@ public class logiN extends Application {
 
         return layout;
     }
+
     /**
      * Creates the login page layout with input fields and buttons.
      *
@@ -205,6 +206,7 @@ public class logiN extends Application {
 
         return layout;
     }
+
     /**
      * Creates a styled {@link VBox} layout with default spacing and alignment.
      *
@@ -216,11 +218,12 @@ public class logiN extends Application {
         vbox.setAlignment(Pos.CENTER);
         return vbox;
     }
+
     /**
      * Creates a styled {@link GridPane} layout with default spacing and alignment.
      *
      * @return a {@link GridPane} with center alignment, 15-pixel padding, and
-     *         horizontal/vertical gaps of 10 pixels.
+     * horizontal/vertical gaps of 10 pixels.
      */
     private GridPane styledGridPane() {
         GridPane g = new GridPane();
@@ -230,6 +233,7 @@ public class logiN extends Application {
         g.setVgap(10);
         return g;
     }
+
     /**
      * Creates a styled {@link Label} with a custom font size and color.
      *
@@ -241,34 +245,37 @@ public class logiN extends Application {
         label.setStyle("-fx-font-size: 14px; -fx-text-fill: black;");
         return label;
     }
+
     /**
      * Creates a styled {@link TextField} with custom border and background color.
      *
      * @return a {@link TextField} styled with black borders, rounded corners,
-     *         and a light gray background.
+     * and a light gray background.
      */
     private TextField styledTextField() {
         TextField textField = new TextField();
         textField.setStyle("-fx-border-color: black; -fx-border-radius: 5; -fx-background-color: #f0f0f0;");
         return textField;
     }
+
     /**
      * Creates a styled {@link PasswordField} with custom border and background color.
      *
      * @return a {@link PasswordField} styled with black borders, rounded corners,
-     *         and a light gray background.
+     * and a light gray background.
      */
     private PasswordField styledPasswordField() {
         PasswordField pass = new PasswordField();
         pass.setStyle("-fx-border-color: black; -fx-border-radius: 5; -fx-background-color: #f0f0f0;");
         return pass;
     }
+
     /**
      * Creates a styled {@link Button} with custom colors and hover effects.
      *
      * @param text the text to display on the button.
      * @return a {@link Button} styled with a blue background, white text,
-     *         and hover effects to change background and text color.
+     * and hover effects to change background and text color.
      */
     private Button styledButton(String text) {
         Button button = new Button(text);
@@ -277,6 +284,7 @@ public class logiN extends Application {
         button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #4682B4; -fx-text-fill: white;"));
         return button;
     }
+
     /**
      * Displays an alert dialog with the specified parameters.
      *
@@ -326,3 +334,42 @@ public class logiN extends Application {
             return "Error";
         }
     }
+
+    public static void main(String[] args) {
+        Thread messagingThread = new Thread(() -> MessagingServer.startchatServer());
+        Thread drawingThread = new Thread(() -> drawingServer.startDrawingServer());
+        Thread connectionThread = new Thread(() -> Server.serverConnect());
+        Thread uiThread = new Thread(() -> launch(args));
+
+        // Start all threads
+        messagingThread.start();
+        drawingThread.start();
+        connectionThread.start();
+        uiThread.start();
+        // Optionally, wait for threads to finish if necessary
+        try {
+            messagingThread.join();
+            drawingThread.join();
+            connectionThread.join();
+            uiThread.start();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Starts the JavaFX application by setting up the primary stage and scenes.
+     *
+     * @param primaryStage the primary stage for this application.
+     */
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("User Authentication");
+
+        Scene signUpScene = new Scene(createSignUpPage(primaryStage), 600, 400);
+        Scene logScene = new Scene(createLoginPage(primaryStage), 600, 400);
+
+        primaryStage.setScene(signUpScene);
+        primaryStage.show();
+    }
+}
