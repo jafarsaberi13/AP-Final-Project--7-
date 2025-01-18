@@ -224,3 +224,77 @@ public class CanvaController {
 
     private List<TextShape> textShapes = new ArrayList<>();
     private BufferedReader in;
+    /**
+     * Initializes the canvas, its tools, and event handlers.
+     */
+    @FXML
+    public void initialize() {
+        gc = DrawingCanvas.getGraphicsContext2D();
+        setupCanvasDrawing(gc);
+
+        showOnlineClients();
+
+        // Configure the pen button to toggle the pen mode
+        penButton.setOnAction(event -> togglePenMode());
+
+        // Configure the eraser button to toggle the eraser mode
+        eraserButton.setOnAction(event -> toggleEraserMode());
+
+        // Configure the shape buttons
+        rectangleButton.setOnAction(event -> toggleShapeMode("rectangle"));
+        squareButton.setOnAction(event -> toggleShapeMode("square"));
+        circleButton.setOnAction(event -> toggleShapeMode("circle"));
+        triangleButton.setOnAction(event -> toggleShapeMode("triangle"));
+
+        // Set up the ColorPicker to change the pen color
+        colorPicker.setValue(penColor); // Set default color
+        colorPicker.setOnAction(event -> penColor = colorPicker.getValue());
+
+        // Set up the Slider to adjust pen size
+        penSizeSlider.setValue(penSize); // Set default value
+        penSizeSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            penSize = newValue.doubleValue(); // Update pen size when Slider value changes
+        });
+
+        clearButton.setOnAction(event -> handleClearCanvas());
+        textButton.setOnAction(event -> {
+            currentMode = "text";
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("Enter Text");
+            dialog.setHeaderText("Please enter the text you want to add:");
+            dialog.setContentText("Text:");
+
+            dialog.showAndWait().ifPresent(inputText -> {
+                System.out.println("Input Text: " + inputText); // Debugging output
+                if (!inputText.isEmpty()) {
+                    textToAdd = inputText;
+                }
+            });
+        });
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
+            if ("eraser".equals(currentMode)) {
+                gc.setLineWidth(penSize);
+                gc.setStroke(Color.WHITE);
+                gc.lineTo(event.getX(), event.getY());
+                gc.stroke();
+
+                // Remove shapes and redraw canvas
+                eraseShape(event.getX(), event.getY());
+                gc.clearRect(0, 0, DrawingCanvas.getWidth(), DrawingCanvas.getHeight());
+                for (Shape shape : shapes) {
+                    shape.draw(gc);
+                }
+            }
+        });
+        saveMenuItem.setOnAction(event -> handleSave());
+        openMenuItem.setOnAction(event -> handleOpenFromFolder());
+
+        sendButton.setOnAction(event -> {
+            String message = messageTextField.getText();  // Get the text from the TextField
+            if (message != null && !message.trim().isEmpty()) {
+                sendMessageToServer(message);  // Send the message to the server
+                appendMessageToTextArea("You: " + message);  // Append the message to the TextArea
+                messageTextField.clear();  // Clear the TextField after sending the message
+            }
+        });
+    }
