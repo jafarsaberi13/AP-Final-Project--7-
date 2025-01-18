@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ColorPicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: #999999;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.saberi.collabocanvas.CanvaController">
+    <children>
+        <MenuBar layoutY="2.0" style="-fx-background-color: #00c8ff;" AnchorPane.bottomAnchor="374.4" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <menus>
+                <Menu fx:id="saveMenuItem" mnemonicParsing="false" text="Save">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="Save" />
+                    </items>
+                </Menu>
+                <Menu fx:id="openMenuItem" mnemonicParsing="false" text="Open">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="Open" />
+                    </items>
+                </Menu>
+                <Menu fx:id="Undo" mnemonicParsing="false" text="Undo">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="Undo" />
+                    </items>
+                </Menu>
+                <Menu fx:id="Redo" mnemonicParsing="false" text="Redo">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="Redo" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>
+        <SplitPane dividerPositions="0.5" layoutY="26.0" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="26.0">
+            <items>
+                <AnchorPane layoutX="1.0" minHeight="0.0" minWidth="0.0" prefHeight="372.0" prefWidth="561.0">
+                    <children>
+                        <Pane layoutX="26.4" layoutY="140.0" prefHeight="192.0" prefWidth="416.0" style="-fx-background-color: white; -fx-border-color: #000000; -fx-border-radius: 5; -fx-background-radius: 5;" AnchorPane.bottomAnchor="40.0" AnchorPane.leftAnchor="25.0" AnchorPane.rightAnchor="27.0" AnchorPane.topAnchor="140.0">
+                            <children>
+                                <Canvas fx:id="DrawingCanvas" height="580" layoutY="1.0" width="900" style="background-color: white;" />
+                            </children>
+                        </Pane>
+                        <Button fx:id="penButton" accessibleText="pen" cache="true" layoutX="23.0" layoutY="20.0" mnemonicParsing="false" mouseTransparent="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Pen" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+                        <Button fx:id="clearButton" layoutX="195.0" layoutY="22.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Clear" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+                        <Button fx:id="eraserButton" layoutX="96.0" layoutY="21.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Eraser" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+
+                        <Button fx:id="textButton" layoutX="287.0" layoutY="21.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Text" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+                        <Button layoutX="366.0" layoutY="21.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Color" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                            <graphic>
+                                <ColorPicker fx:id="colorPicker" style="-fx-background-color: #00c8ff;" />
+                            </graphic>
+                        </Button>
+
+                        <Slider fx:id="penSizeSlider"
+                                layoutX="681.8"
+                                layoutY="38.0"
+                                prefHeight="14.0"
+                                prefWidth="192.0"
+                                min="1.0"
+                                max="50.0"
+                                value="5.0"
+                                showTickLabels="true"
+                                showTickMarks="true"
+                                majorTickUnit="10.0"
+                                minorTickCount="5"
+                                style="-fx-background-color: #00c8ff;" />
+                        <Label fx:id="penSizeLabel" layoutX="580.2" layoutY="38.0" text="Pen Size" textFill="#00c8ff" AnchorPane.leftAnchor="620.0">
+                            <font>
+                                <Font name="System Bold" size="14.0" />
+                            </font>
+                        </Label>
+                        <Button fx:id="squareButton" layoutX="254.0" layoutY="83.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Square" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+                        <Button fx:id="circleButton" layoutX="154.0" layoutY="81.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Circle" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+                        <Button fx:id="triangleButton" layoutX="32.0" layoutY="79.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Triangle" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+                        <Button fx:id="rectangleButton" layoutX="365.0" layoutY="82.0" mnemonicParsing="false" style="-fx-background-radius: 17; -fx-background-color: #00c8ff; -fx-border-radius: 17; -fx-border-color: #999999;" text="Rectangle" textAlignment="CENTER" textFill="WHITE">
+                            <font>
+                                <Font name="System Bold Italic" size="20.0" />
+                            </font>
+                        </Button>
+                        <Label fx:id="drawingBoardLabel" layoutX="14.0" layoutY="329.0" text="Drawing Board" textFill="#00c8ff" AnchorPane.bottomAnchor="7.0" AnchorPane.leftAnchor="18.0">
+                            <font>
+                                <Font name="Kristen ITC" size="22.0" />
+                            </font>
+                        </Label>
+                    </children>
+                </AnchorPane>
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="178.0" prefWidth="194.0">
+                    <children>
+                        <SplitPane dividerPositions="0.30561555075593955" layoutX="8.0" layoutY="38.0" orientation="VERTICAL" prefHeight="372.0" prefWidth="176.8" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                            <items>
+                                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="48.0" prefWidth="476.0" style="-fx-background-color: #00c8ff;">
+                                    <children>
+                                        <AnchorPane layoutX="1.0" layoutY="-13.0" prefHeight="110.4" prefWidth="476.0" style="-fx-background-color: white;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="12.0" AnchorPane.rightAnchor="12.0" AnchorPane.topAnchor="35.0">
+                                            <children>
+                                                <ListView fx:id="connectedClientList" prefHeight="85.60000000000001" prefWidth="452.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                                            </children>
+                                        </AnchorPane>
+                                        <Label fx:id="connectedClientLabel" layoutX="154.0" layoutY="-1.0" style="-fx-background-color: #00c8ff; -fx-alignment: center;" text="Connected Clients" textFill="WHITE">
+                                            <font>
+                                                <Font name="System Bold Italic" size="21.0" />
+                                            </font>
+                                        </Label>
+                                    </children></AnchorPane>
+                                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="322.0" prefWidth="476.0" style="-fx-background-color: #00c8ff;">
+                                    <children>
+                                        <AnchorPane layoutX="125.0" layoutY="-1.0" prefHeight="134.0" prefWidth="452.0" style="-fx-background-color: white; -fx-border-color: 17; -fx-background-radius: 17; -fx-border-color: white;" AnchorPane.bottomAnchor="90.0" AnchorPane.leftAnchor="12.0" AnchorPane.rightAnchor="12.0" AnchorPane.topAnchor="30.0">
+                                            <children>
+                                                <TextArea fx:id="messageTextArea" layoutX="1.6" layoutY="3.2" prefHeight="113.6" prefWidth="452.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                                            </children>
+                                        </AnchorPane>
+                                        <AnchorPane layoutX="7.2" layoutY="107.0" prefHeight="69.0" prefWidth="457.0" style="-fx-background-color: #ffffff; -fx-border-color: white; -fx-background-radius: 17; -fx-border-radius: 17;" AnchorPane.bottomAnchor="12.0" AnchorPane.leftAnchor="7.0" AnchorPane.rightAnchor="12.0">
+                                            <children>
+                                                <Button fx:id="sendButton" layoutX="351.0" layoutY="35.0" mnemonicParsing="false" style="-fx-background-color: #00c8ff;" text="Send" textFill="WHITE" AnchorPane.bottomAnchor="18.0" AnchorPane.rightAnchor="18.0">
+                                                    <font>
+                                                        <Font name="System Bold Italic" size="17.0" />
+                                                    </font>
+                                                </Button>
+                                                <TextField fx:id="messageTextField" layoutY="36.0" prefHeight="68.0" prefWidth="456.8" promptText="Write your message" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="88.0" AnchorPane.topAnchor="0.0">
+                                                    <font>
+                                                        <Font size="19.0" />
+                                                    </font></TextField>
+                                            </children>
+                                        </AnchorPane>
+                                        <Label fx:id="chatBoxLabel" layoutX="184.0" layoutY="-2.0" style="-fx-background-color: #00c8ff; -fx-alignment: center;" text="Chat Box" textFill="WHITE">
+                                            <font>
+                                                <Font name="System Bold Italic" size="21.0" />
+                                            </font>
+                                        </Label>
+                                    </children></AnchorPane>
+                            </items>
+                        </SplitPane>
+                    </children>
+                </AnchorPane>
+            </items>
+        </SplitPane>
+    </children>
+</AnchorPane>
