@@ -833,6 +833,69 @@ public class CanvaController {
     private Stage getPrimaryStage() {
         return (Stage) Stage.getWindows().filtered(window -> window instanceof Stage).get(0);
     }
+    /**
+     * Sends drawing data to the server in JSON format.
+     *
+     * @param x     the x-coordinate of the drawing action.
+     * @param y     the y-coordinate of the drawing action.
+     * @param color the color used for drawing.
+     * @param size  the size of the drawing tool.
+     */
+    /**
+     * Method to send drawing data in JSON format.
+     */
+    public void sendDrawingData(double x, double y, String color, double size) {
+        // Create JSON object for the drawing data
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("action", "draw");
+        jsonObject.put("x", x);
+        jsonObject.put("y", y);
+        jsonObject.put("color", color);
+        jsonObject.put("size", size);
+
+        // Send the data to the server
+        out.println(jsonObject.toJSONString());
+    }
+    /**
+     * Sends shape data to the server in JSON format.
+     *
+     * @param shape the {@code Shape} object to send.
+     */
+    public void sendShapeData(Shape shape) {
+        // Create a JSON object for the shape
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("action", "shape");
+        jsonObject.put("type", shape.getType());
+        jsonObject.put("x", shape.getX());
+        jsonObject.put("y", shape.getY());
+
+        // Handle RectangleShape
+        if (shape instanceof RectangleShape) {
+            RectangleShape rectangle = (RectangleShape) shape;
+            jsonObject.put("width", rectangle.getWidth());
+            jsonObject.put("height", rectangle.getHeight());
+        }
+
+        // Handle CircleShape
+        if (shape instanceof CircleShape) {
+            CircleShape circle = (CircleShape) shape;
+            jsonObject.put("radius", circle.getRadius());
+        }
+
+        // Add stroke and fill color (if any)
+        jsonObject.put("strokeColor", shape.getStrokeColor().toString());
+        jsonObject.put("fillColor", shape.getFillColor() != null ? shape.getFillColor().toString() : "null");
+
+        // Send the JSON object to the server
+        out.println(jsonObject.toJSONString());
+    }
+    /**
+     * Sends text data to the server in JSON format.
+     *
+     * @param x    the x-coordinate for placing the text.
+     * @param y    the y-coordinate for placing the text.
+     * @param text the text content.
+     */
 }
 
 
