@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * Controller class for the collaborative canvas application, responsible for handling user interactions
  * and managing the drawing functionalities on the canvas.
@@ -224,6 +225,7 @@ public class CanvaController {
 
     private List<TextShape> textShapes = new ArrayList<>();
     private BufferedReader in;
+
     /**
      * Initializes the canvas, its tools, and event handlers.
      */
@@ -298,3 +300,843 @@ public class CanvaController {
             }
         });
     }
+
+    /**
+     * Sends a message to the server.
+     *
+     * @param message The message to be sent.
+     */
+    private void sendMessageToServer(String message) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("text", message);
+        if (out1 != null) {
+            out1.println(jsonObject.toJSONString());  // Send the message to the server
+        }
+    }
+
+    /**
+     * Appends a message to the chat TextArea.
+     *
+     * @param message The message to append.
+     */
+    // Method to append the message to the TextArea
+    private void appendMessageToTextArea(String message) {
+        messageTextArea.appendText(message + "\n");  // Add the message to the TextArea with a newline
+        messageTextArea.setScrollTop(Double.MAX_VALUE);  // Scroll to the bottom of the TextArea
+    }
+
+    /**
+     * Handles the erasing of shapes on the canvas.
+     *
+     * @param x The X-coordinate of the eraser position.
+     * @param y The Y-coordinate of the eraser position.
+     */
+    private void eraseShape(double x, double y) {
+        shapes.removeIf(shape -> shape.intersects(x, y, penSize, penSize)); // Remove shapes in eraser area
+    }
+
+    gles the
+    pen drawing
+    mode .
+     */
+
+    private void togglePenMode() {
+        if ("pen".equals(currentMode)) {
+            deactivateAllModes(); // Deactivate if already in pen mode
+        } else {
+            currentMode = "pen";
+            updateButtonStyles();
+        }
+    }
+
+    /**
+     * Toggles the eraser mode.
+     */
+    private void toggleEraserMode() {
+        if ("eraser".equals(currentMode)) {
+            deactivateAllModes(); // Deactivate if already in eraser mode
+        } else {
+            currentMode = "eraser";
+            updateButtonStyles();
+        }
+    }
+
+    /**
+     * Clears the canvas and resets drawing settings.
+     */
+    @FXML
+    private void handleClearCanvas() {
+        // Clear the canvas
+        gc.clearRect(0, 0, DrawingCanvas.getWidth(), DrawingCanvas.getHeight());
+
+        // Clear the shapes list
+        shapes.clear();
+
+        // Optionally, reset other settings (e.g., pen size, color, mode)
+        currentMode = "";
+        updateButtonStyles();
+    }
+
+    /**
+     * Toggles the mode for drawing shapes.
+     *
+     * @param shape The shape to toggle (e.g., "rectangle", "circle").
+     */
+    private void toggleShapeMode(String shape) {
+        if (currentMode.equals(shape)) {
+            // Deactivate shape mode if clicked again
+            deactivateAllModes();
+        } else {
+            // Activate the selected shape mode
+            currentMode = shape;
+            updateButtonStyles();
+        }
+    }
+
+    private void deactivateAllModes() {
+        currentMode = ""; // Reset the mode to default (no active mode)
+        updateButtonStyles();
+    }
+
+    ates the
+    styles of
+    all tool
+    buttons based
+    on the
+    current mode.
+            */
+
+    private void updateButtonStyles() {
+        // Update pen and eraser button styles
+        penButton.setStyle(
+                "pen".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" :
+                        "-fx-background-color: #00c8ff; -fx-text-fill: white;"
+        );
+        eraserButton.setStyle(
+                "eraser".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" :
+                        "-fx-background-color: #00c8ff; -fx-text-fill: white;"
+        );
+
+        // Update shape button styles
+        rectangleButton.setStyle("rectangle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+        squareButton.setStyle("square".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+        circleButton.setStyle("circle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+        triangleButton.setStyle("triangle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
+    }
+
+    /**
+     * Adds text to the canvas.
+     *
+     * @param x    The X-coordinate of the text position.
+     * @param y    The Y-coordinate of the text position.
+     * @param text The text to add.
+     */
+    // Add a list to store the added texts
+    // Add to your existing canvas drawing logic
+    private void addTextToCanvas(double x, double y, String text) {
+        System.out.println("Adding text to canvas: " + text + " at (" + x + ", " + y + ")");
+        gc.setFont(Font.font("Arial", penSize * 5)); // Use dynamic font size
+        gc.setFill(penColor); // Set color
+        gc.fillText(text, x, y); // Draw text
+
+        // Store text as a shape
+        shapes.add(new TextShape(x, y, text, penColor)); // Add text as a shape
+    }
+
+    /**
+     * Configures the canvas for drawing, including event handlers for mouse actions.
+     *
+     * @param gc The GraphicsContext for the canvas.
+     */
+    private void setupCanvasDrawing(GraphicsContext gc) {
+        // Flag to track if a shape is being drawn
+        AtomicBoolean isDrawingShape = new AtomicBoolean(false);
+
+        // Temporary storage for freehand drawing points
+        List<Double> tempPointsX = new ArrayList<>();
+        List<Double> tempPointsY = new ArrayList<>();
+
+        // Handle mouse press for shape drawing
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+            if ("pen".equals(currentMode)) {
+                gc.beginPath(); // Start a new path
+                gc.moveTo(event.getX(), event.getY());
+                gc.stroke();
+                tempPointsX.clear();
+                tempPointsY.clear();
+                tempPointsX.add(event.getX());
+                tempPointsY.add(event.getY());
+            } else if ("eraser".equals(currentMode)) {
+                gc.beginPath();
+                gc.moveTo(event.getX(), event.getY());
+                gc.stroke();
+            } else if ("rectangle".equals(currentMode) || "square".equals(currentMode) ||
+                    "circle".equals(currentMode) || "triangle".equals(currentMode)) {
+                startX = event.getX();
+                startY = event.getY();
+                isDrawingShape.set(true); // Start drawing shape
+            }
+        });
+
+        // Handle mouse dragged to continue drawing
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
+            if ("pen".equals(currentMode)) {
+                tempPointsX.add(event.getX());
+                tempPointsY.add(event.getY());
+                gc.setLineWidth(penSize); // Use adjustable pen size
+                gc.setStroke(penColor); // Pen uses the selected color
+                gc.lineTo(event.getX(), event.getY());
+                gc.stroke();
+                gc.setLineWidth(penSize);
+
+                // Send drawing data to the server
+                sendDrawingData(event.getX(), event.getY(), penColor.toString(), penSize); // Send the current coordinates and color
+            } else if ("eraser".equals(currentMode)) {
+                gc.setLineWidth(penSize); // Use adjustable eraser size
+                gc.setStroke(Color.WHITE); // Eraser uses white color
+                gc.lineTo(event.getX(), event.getY());
+                gc.stroke();
+
+                // Remove shapes near the eraser's position
+                eraseShape(event.getX(), event.getY());
+            } else if ("rectangle".equals(currentMode) || "square".equals(currentMode) ||
+                    "circle".equals(currentMode) || "triangle".equals(currentMode)) {
+                // Redraw all previous shapes
+                gc.clearRect(0, 0, DrawingCanvas.getWidth(), DrawingCanvas.getHeight());
+                for (Shape shape : shapes) {
+                    shape.draw(gc);
+                }
+
+                // Draw the current shape being dragged
+                if ("rectangle".equals(currentMode)) {
+                    double width = event.getX() - startX;
+                    double height = event.getY() - startY;
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokeRect(startX, startY, width, height);
+                    //sendShapeData(new RectangleShape(startX, startY, width, height, "rectangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                } else if ("square".equals(currentMode)) {
+                    double size = Math.min(Math.abs(event.getX() - startX), Math.abs(event.getY() - startY));
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokeRect(startX, startY, size, size);
+                    //sendShapeData(new SquareShape(size, startX, startY, "square", (Color) gc.getStroke(), (Color) gc.getFill()));
+                } else if ("circle".equals(currentMode)) {
+                    double radius = Math.sqrt(Math.pow(event.getX() - startX, 2) + Math.pow(event.getY() - startY, 2));
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokeOval(startX - radius, startY - radius, 2 * radius, 2 * radius);
+                    //sendShapeData(new CircleShape(startX, startY, radius, "circle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                } else if ("triangle".equals(currentMode)) {
+                    double base = Math.abs(event.getX() - startX);
+                    double height = Math.abs(event.getY() - startY);
+                    gc.setFill(Color.TRANSPARENT); // Transparent fill
+                    gc.strokePolygon(
+                            new double[]{startX, startX + base / 2, startX - base / 2},
+                            new double[]{startY, startY - height, startY - height},
+                            3
+                    );
+                    //sendShapeData(new TriangleShape(startX, startY, base, height, "triangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                }
+            }
+        });
+
+        // Handle mouse release to finalize the shape
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
+            if ("pen".equals(currentMode)) {
+                shapes.add(new FreehandShape(new ArrayList<>(tempPointsX), new ArrayList<>(tempPointsY), penSize));
+            } else if ("eraser".equals(currentMode)) {
+                gc.closePath();
+            } else if ("rectangle".equals(currentMode)) {
+                double width = event.getX() - startX;
+                double height = event.getY() - startY;
+
+                shapes.add(new RectangleShape(startX, startY, width, height, "rectangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new RectangleShape(startX, startY, width, height, "rectangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            } else if ("square".equals(currentMode)) {
+                double size = Math.min(Math.abs(event.getX() - startX), Math.abs(event.getY() - startY));
+                shapes.add(new SquareShape(startX, startY, size, "square", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new SquareShape(size, startX, startY, "square", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            } else if ("circle".equals(currentMode)) {
+                double radius = Math.sqrt(Math.pow(event.getX() - startX, 2) + Math.pow(event.getY() - startY, 2));
+                shapes.add(new CircleShape(startX, startY, radius, "circle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new CircleShape(startX, startY, radius, "circle", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            } else if ("triangle".equals(currentMode)) {
+                double base = Math.abs(event.getX() - startX);
+                double height = Math.abs(event.getY() - startY);
+                shapes.add(new TriangleShape(startX, startY, base, height, "triangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+                sendShapeData(new TriangleShape(startX, startY, base, height, "triangle", (Color) gc.getStroke(), (Color) gc.getFill()));
+
+            }
+        });
+
+        // Handle mouse click for text mode with dynamic text positioning
+        DrawingCanvas.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            System.out.println("Mouse clicked at: " + event.getX() + ", " + event.getY()); // Debugging output
+            if ("text".equals(currentMode) && !textToAdd.isEmpty()) {
+                System.out.println("Adding text: " + textToAdd); // Debugging output
+                addTextToCanvas(event.getX(), event.getY(), textToAdd);
+                sendTextDataToServer(event.getX(), event.getY(), textToAdd);
+            }
+        });
+    }
+
+    /**
+     * Connects to the server using the specified host and port.
+     * Establishes input and output streams for communication.
+     *
+     * @param host The hostname or IP address of the server to connect to.
+     * @param port The port number on which the server is listening.
+     */
+    public void connectToServer(String host, int port) {
+        try {
+            // Establish the connection to the server
+            socket = new Socket(host, port);
+
+            // Set up the input and output streams
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // Once connected, log a success message
+            System.out.println("Connected to server at " + host + ":" + port);
+
+            // Start listening for incoming data from the server
+            startListening();
+
+        } catch (IOException e) {
+            System.out.println("Failed to connect to the server: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Listens for messages from the server and processes them in a separate thread.
+     * Handles actions such as drawing shapes, updating text, or other client-specific updates.
+     */
+    public void startListening() {
+        List<Double> tempPointsX = new ArrayList<>();
+        List<Double> tempPointsY = new ArrayList<>();
+        new Thread(() -> {
+            try {
+                String message;
+                while ((message = in.readLine()) != null) {
+                    // Process the incoming message (expected in JSON format)
+                    JSONParser parser = new JSONParser();
+                    JSONObject jsonResponse = (JSONObject) parser.parse(message);
+                    System.out.println("Received from server: " + jsonResponse.toString());
+
+                    // Here you can parse the drawing data and update the canvas
+                    String action = (String) jsonResponse.get("action"); // Action should be "draw" or other actions
+                    if ("draw".equals(action)) {
+                        // Parse drawing data and display it on the canvas
+                        double x = ((Number) jsonResponse.get("x")).doubleValue();  // Casting to Number to retrieve double value
+                        double y = ((Number) jsonResponse.get("y")).doubleValue();
+                        String color = (String) jsonResponse.get("color");
+                        double size = ((Number) jsonResponse.get("size")).doubleValue(); // Get the pen size
+                        tempPointsX.clear();
+                        tempPointsY.clear();
+                        tempPointsX.add(x);
+                        tempPointsY.add(y);
+
+                        shapes.add(new FreehandShape(new ArrayList<>(tempPointsX), new ArrayList<>(tempPointsY), size));
+                        // Call your method to update the drawing on the canvas with received data
+                        Platform.runLater(() -> updateCanvas(jsonResponse)); // Ensure UI update happens on the JavaFX thread
+                    } else if ("shape".equals(action)) {
+                        // Handle shape drawing
+                        Platform.runLater(() -> updateCanvas(jsonResponse));
+                    } else if ("textdata".equals(action)) {
+                        // Handle shape drawing
+                        Platform.runLater(() -> updateCanvas(jsonResponse));
+                    }
+                }
+            } catch (IOException e) {
+                System.out.println("Error while listening for server messages: " + e.getMessage());
+            } catch (ParseException parseException) {
+                parseException.printStackTrace();
+            }
+        }).start();
+    }
+
+    /**
+     * Updates the canvas based on received JSON data.
+     *
+     * @param json The JSONObject containing drawing information (shapes, colors, sizes, etc.).
+     */
+    private void updateCanvas(JSONObject json) {
+        if (json != null) {
+            String action = (String) json.get("action");
+            final double x = ((Number) json.get("x")).doubleValue();
+            final double y = ((Number) json.get("y")).doubleValue();
+
+            List<Double> tempPointsX = new ArrayList<>();
+            List<Double> tempPointsY = new ArrayList<>();
+
+            tempPointsX.clear();
+            tempPointsY.clear();
+            tempPointsX.add(x);
+            tempPointsY.add(y);
+
+            if ("shape".equals(action)) {
+                double size = 1.0; // Default stroke width
+
+                final String type = (String) json.get("type");
+
+                final String color = ((String) json.get("strokeColor")).replace("0x", "#"); // Convert color
+                final double strokeWidth = 1.0; // Default stroke size
+
+                // Shape-specific dimensions
+                final double radius = "circle".equals(type) && json.containsKey("radius")
+                        ? ((Number) json.get("radius")).doubleValue()
+                        : 0.0;
+                final double width = ("rectangle".equals(type) || "square".equals(type)) && json.containsKey("width")
+                        ? ((Number) json.get("width")).doubleValue()
+                        : 0.0;
+                final double height = "rectangle".equals(type) && json.containsKey("height")
+                        ? ((Number) json.get("height")).doubleValue()
+                        : 0.0;
+
+                // Run drawing logic on JavaFX Application Thread
+                javafx.application.Platform.runLater(() -> {
+                    try {
+                        Canvas canvas = (Canvas) getCanvasFromScene(); // Get the canvas
+                        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+                        // Configure stroke properties
+                        gc.setStroke(Color.web(color));
+                        gc.setLineWidth(strokeWidth);
+
+                        // Draw the requested shape
+                        switch (type) {
+                            case "circle":
+                                redrawAllShapes();
+                                gc.strokeOval(x - radius, y - radius, radius * 2, radius * 2);
+                                shapes.add(new CircleShape(x, y, radius, "circle", Color.WHITE, Color.WHITE));
+                                break;
+
+                            case "rectangle":
+                                redrawAllShapes();
+                                gc.strokeRect(x, y, width, height);
+                                shapes.add(new RectangleShape(x, y, width, height, "rectangle", Color.WHITE, Color.WHITE));
+                                break;
+
+                            case "square":
+                                redrawAllShapes();
+                                // Calculate square size and ensure valid dimensions
+                                double squareSize = Math.abs(width);
+
+                                if (squareSize == 0) {
+                                    System.out.println("Square width is zero, cannot draw.");
+                                    break;
+                                }
+                                gc.strokeRect(x, y, squareSize, squareSize);
+                                System.out.println("Square drawn at (" + x + ", " + y + ") with size: " + squareSize);
+                                shapes.add(new SquareShape(size, x, y, "square", Color.WHITE, Color.WHITE));
+                                break;
+                            case "triangle":
+
+                                redrawAllShapes();
+                                // Stop drawing if the triangle becomes too small
+                                if (currentBase < 10 || currentHeight < 10) {
+                                    System.out.println("Triangle size is too small to draw further.");
+                                    break;
+                                }
+
+                                // Calculate the vertices for the reversed triangle
+                                double[] xPointsReversed = {x, x - currentBase / 2, x + currentBase / 2};
+                                double[] yPointsReversed = {y + currentHeight, y, y};
+
+                                // Draw the triangle
+                                gc.setFill(Color.TRANSPARENT); // Transparent fill
+                                gc.strokePolygon(xPointsReversed, yPointsReversed, 3);
+
+                                // Shrink the triangle dimensions for the next draw
+                                currentBase *= scaleFactor;
+                                currentHeight *= scaleFactor;
+
+                                // Log the triangle dimensions for debugging
+                                System.out.println("Triangle drawn at (" + x + ", " + y + ") reversed with base: " + currentBase + " and height: " + currentHeight);
+                                shapes.add(new TriangleShape(x, y, currentBase, currentHeight, "triangle", Color.WHITE, Color.WHITE));
+                                break;
+                            default:
+                                System.out.println("Unsupported shape type: " + type);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error while drawing shape: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                });
+            } else if ("draw".equals(action)) {
+                double size = (double) json.get("size"); // Default size for shapes (adjust if needed)
+                String color = (String) json.get("color");
+                // Handle freehand drawing or continuous drawing
+                // Add new coordinates to the freehand list
+                shapes.add(new FreehandShape(new ArrayList<>(tempPointsX), new ArrayList<>(tempPointsY), size));
+                javafx.application.Platform.runLater(() -> {
+                    // Get the GraphicsContext from the canvas
+                    Canvas canvas = (Canvas) getCanvasFromScene();  // Get the canvas from the scene graph
+                    GraphicsContext gc = canvas.getGraphicsContext2D();
+
+                    // Set the stroke color
+                    gc.setStroke(Color.web("#" + color.substring(2)));
+                    gc.setLineWidth(size); // Use the pen size
+
+                    // Start a new path (necessary if not already started)
+                    gc.beginPath();
+
+                    // Move to the first point (if needed) to start drawing
+                    gc.moveTo(x, y);
+
+                    // Draw the line to the new point
+                    gc.lineTo(x, y);
+                    gc.stroke();
+                });
+            } else if ("textdata".equals(action)) {
+                String text = (String) json.get("text");
+
+                double size = 20; // Size for text font
+
+
+                // Ensure that this part runs on the JavaFX Application Thread
+                javafx.application.Platform.runLater(() -> {
+                    // Get the GraphicsContext from the canvas
+                    Canvas canvas = (Canvas) getCanvasFromScene();  // Get the canvas from the scene graph
+                    GraphicsContext gc = canvas.getGraphicsContext2D();
+
+                    // Set the font size and color for the text
+                    gc.setFont(new Font(size)); // Set the font size
+                    gc.setFill(Color.BLACK); // Set text color
+
+                    // Draw the text at the specified position (x, y)
+                    gc.fillText(text, x, y);
+                });
+            }
+
+        }
+    }
+
+    /**
+     * Retrieves the primary {@code Canvas} object from the current scene hierarchy.
+     *
+     * @return the {@code Canvas} object if found; {@code null} otherwise.
+     */
+    // Helper class to store shape data
+    private Canvas getCanvasFromScene() {
+        // Get the root AnchorPane from the scene
+        AnchorPane root = (AnchorPane) getPrimaryStage().getScene().getRoot();
+
+        // Find the SplitPane from the root AnchorPane
+        SplitPane splitPane = (SplitPane) root.getChildren().get(1);
+
+        // Access the left AnchorPane in the SplitPane
+        AnchorPane leftPane = (AnchorPane) splitPane.getItems().get(0);
+
+        // Find the Pane containing the Canvas
+        Pane canvasPane = (Pane) leftPane.getChildren().stream()
+                .filter(node -> node instanceof Pane)
+                .findFirst()
+                .orElse(null);
+
+        if (canvasPane != null) {
+            // Find the Canvas inside the Pane
+            return (Canvas) canvasPane.getChildren().stream()
+                    .filter(node -> node instanceof Canvas)
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        return null; // Return null if Canvas is not found
+    }
+
+    /**
+     * Retrieves the primary {@code Stage} of the application.
+     *
+     * @return the primary {@code Stage}.
+     */
+    private Stage getPrimaryStage() {
+        return (Stage) Stage.getWindows().filtered(window -> window instanceof Stage).get(0);
+    }
+    /**
+     * Sends drawing data to the server in JSON format.
+     *
+     * @param x     the x-coordinate of the drawing action.
+     * @param y     the y-coordinate of the drawing action.
+     * @param color the color used for drawing.
+     * @param size  the size of the drawing tool.
+     */
+    /**
+     * Method to send drawing data in JSON format.
+     */
+    public void sendDrawingData(double x, double y, String color, double size) {
+        // Create JSON object for the drawing data
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("action", "draw");
+        jsonObject.put("x", x);
+        jsonObject.put("y", y);
+        jsonObject.put("color", color);
+        jsonObject.put("size", size);
+
+        // Send the data to the server
+        out.println(jsonObject.toJSONString());
+    }
+
+    /**
+     * Sends shape data to the server in JSON format.
+     *
+     * @param shape the {@code Shape} object to send.
+     */
+    public void sendShapeData(Shape shape) {
+        // Create a JSON object for the shape
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("action", "shape");
+        jsonObject.put("type", shape.getType());
+        jsonObject.put("x", shape.getX());
+        jsonObject.put("y", shape.getY());
+
+        // Handle RectangleShape
+        if (shape instanceof RectangleShape) {
+            RectangleShape rectangle = (RectangleShape) shape;
+            jsonObject.put("width", rectangle.getWidth());
+            jsonObject.put("height", rectangle.getHeight());
+        }
+
+        // Handle CircleShape
+        if (shape instanceof CircleShape) {
+            CircleShape circle = (CircleShape) shape;
+            jsonObject.put("radius", circle.getRadius());
+        }
+
+        // Add stroke and fill color (if any)
+        jsonObject.put("strokeColor", shape.getStrokeColor().toString());
+        jsonObject.put("fillColor", shape.getFillColor() != null ? shape.getFillColor().toString() : "null");
+
+        // Send the JSON object to the server
+        out.println(jsonObject.toJSONString());
+    }
+    /**
+     * Sends text data to the server in JSON format.
+     *
+     * @param x    the x-coordinate for placing the text.
+     * @param y    the y-coordinate for placing the text.
+     * @param text the text content.
+     */
+     */
+
+    private void handleSave() {
+        // Prompt user for file name
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Save Canvas");
+        dialog.setHeaderText("Enter a name for the file:");
+        dialog.setContentText("File Name:");
+
+        dialog.showAndWait().ifPresent(fileName -> {
+            if (fileName.isEmpty()) {
+                System.out.println("File name cannot be empty.");
+                return;
+            }
+
+            // Prepare JSON data for the canvas
+            JSONObject canvasData = new JSONObject();
+            JSONArray shapesArray = new JSONArray();
+
+            for (Shape shape : shapes) {
+                JSONObject shapeJson = shape.toJson(); // Each shape should have a toJson() method
+                shapesArray.add(shapeJson);
+            }
+            canvasData.put("action", "save");
+            canvasData.put("fileName", fileName);
+            canvasData.put("shapes", shapesArray);
+
+            // Send data to server
+            sendSaveRequestToServer(canvasData);
+        });
+    }
+
+    /**
+     * Sends the canvas save request to the server.
+     *
+     * @param canvasData the JSON object containing canvas data.
+     */
+    private void sendSaveRequestToServer(JSONObject canvasData) {
+        try {
+            out.println(canvasData.toJSONString());
+            System.out.println("Canvas data sent to server for saving.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to send canvas data to server.");
+        }
+    }
+
+    /**
+     * Opens a canvas file from a specified folder and loads it onto the canvas.
+     */
+    private void handleOpenFromFolder() {
+        try {
+            // Specify the folder containing saved files
+            File folder = new File("E:\\Canva\\savedFiles");
+
+            if (!folder.exists() || !folder.isDirectory()) {
+                System.out.println("The specified folder does not exist or is not a directory.");
+                return;
+            }
+
+            // List all JSON files in the folder
+            File[] jsonFiles = folder.listFiles((dir, name) -> name.endsWith(".json"));
+            if (jsonFiles == null || jsonFiles.length == 0) {
+                System.out.println("No JSON files found in the specified folder.");
+                return;
+            }
+
+            // Show a FileChooser dialog to let the user select a file
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Open Saved Canvas");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+            fileChooser.setInitialDirectory(folder);
+
+            // Show the file chooser and get the selected file
+            File selectedFile = fileChooser.showOpenDialog(getPrimaryStage());
+            if (selectedFile == null) {
+                System.out.println("No file selected.");
+                return;
+            }
+
+            // Parse the selected JSON file and load the canvas data
+            loadCanvasFromFile(selectedFile);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to open and load the file.");
+        }
+    }
+
+    /**
+     * Loads a canvas file from the specified file and renders it on the canvas.
+     *
+     * @param file the file containing saved canvas data.
+     */
+    private void loadCanvasFromFile(File file) {
+        try (FileReader reader = new FileReader(file)) {
+            JSONParser parser = new JSONParser();
+            JSONObject canvasData = (JSONObject) parser.parse(reader);
+
+            // Clear the current canvas
+            gc.clearRect(0, 0, DrawingCanvas.getWidth(), DrawingCanvas.getHeight());
+            shapes.clear();
+
+            // Parse and load shapes
+            JSONArray shapesArray = (JSONArray) canvasData.get("shapes");
+            for (Object shapeObj : shapesArray) {
+                JSONObject shapeJson = (JSONObject) shapeObj;
+                System.out.println(shapeJson);
+                Shape shape = Shape.fromJson(shapeJson); // Ensure your Shape class has a `fromJson` method
+                shapes.add(shape);
+                shape.draw(gc); // Draw each shape on the canvas
+            }
+
+            System.out.println("Canvas loaded successfully from " + file.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to load the canvas data from file.");
+        }
+    }
+
+    /**
+     * Connects to the messaging server at the specified host and port.
+     *
+     * @param host the server's hostname or IP address.
+     * @param port the server's port number.
+     */
+    // Method to connect to the server
+    public void connectToServerMesseging(String host, int port) {
+        try {
+            // Establish the connection to the server
+            socket1 = new Socket(host, port);
+
+            // Set up the input and output streams
+            out1 = new PrintWriter(socket1.getOutputStream(), true);
+            in1 = new BufferedReader(new InputStreamReader(socket1.getInputStream()));
+
+
+            // Once connected, log a success message
+            System.out.println("Connected to server at " + host + ":" + port);
+
+            // Start listening for incoming messages from the server
+            startListening1();
+
+        } catch (IOException e) {
+            System.out.println("Failed to connect to the server: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Starts listening for incoming messages from the server.
+     */
+    // Method to start listening for messages from the server
+    void startListening1() {
+        new Thread(() -> {
+            try {
+                String message;
+                while ((message = in1.readLine()) != null) {
+                    // Display the message from the server (can be updated to use a GUI or logger)
+                    System.out.println(message);
+
+                    JSONParser parser = new JSONParser();
+                    try {
+                        JSONObject object = (JSONObject) parser.parse(message);
+                        appendMessageToTextArea((String) object.get("text"));
+                    } catch (ParseException parseException) {
+                        parseException.printStackTrace();
+                    }
+                }
+            } catch (IOException e) {
+                System.out.println("Error reading from server: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Displays the list of online clients by reading data from a local JSON file.
+     */
+    public void showOnlineClients() {
+        File file = new File("E:/JAVA/CollaboCanvas/DataFile.json");
+        System.out.println("clients added");
+        // Ensure the file exists before attempting to read it
+        if (!file.exists()) {
+            System.out.println("File not found: " + file.getAbsolutePath());
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            // Use a JSONParser to parse each line
+            JSONParser parser = new JSONParser();
+            ObservableList<String> clientList = FXCollections.observableArrayList(); // List to hold usernames
+            String str;
+
+            while ((str = reader.readLine()) != null) {
+                System.out.println("clients read");
+                try {
+                    // Parse the JSON object for each line
+                    JSONObject jsonObject = (JSONObject) parser.parse(str);
+                    String username = (String) jsonObject.get("Username");
+                    System.out.println("usernae " + username);
+                    // Add the username to the ObservableList
+                    if (username != null) {
+                        clientList.add(username);
+                    }
+                } catch (ParseException e) {
+                    System.out.println("Error parsing line: " + str);
+                }
+            }
+
+            // Update the ListView on the JavaFX Application Thread
+            Platform.runLater(() -> {
+                connectedClientList.setItems(clientList);  // Set the list of usernames to the ListView
+                for (String client : connectedClientList.getItems()) {
+                    System.out.println(client);
+                }
+            });
+        } catch (IOException e) {
+            System.out.println("Error reading the file: " + file.getAbsolutePath());
+            e.printStackTrace();
+        }
+    }
+}
+
+
