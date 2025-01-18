@@ -290,3 +290,39 @@ public class logiN extends Application {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+    /**
+     * Establishes communication with the server for user registration or login.
+     *
+     * @param action   the action to perform, either "REGISTER" or "LOGIN".
+     * @param username the user's username.
+     * @param email    the user's email (only for registration).
+     * @param password the user's password.
+     * @return the server's response as a {@link String}.
+     * @throws IOException if there is an error during communication.
+     */
+    private String communicateWithServer(String action, String username, String email, String password) throws IOException {
+        JSONObject obj = new JSONObject();
+        if (action.equals("REGISTER")) {
+            obj.put("Type", action);
+            obj.put("Username", username);
+            obj.put("Email", email);
+            obj.put("Password", password);
+        } else { // If action be 'Login'
+            obj.put("Type", action);
+            obj.put("Username", username);
+            obj.put("Password", password);
+        }
+        try {
+            Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+
+            out.println(obj.toJSONString());
+            System.out.println("sened " + obj.toJSONString());
+            return in.readUTF();
+        } catch (IOException io) {
+            io.printStackTrace();
+            return "Error";
+        }
+    }
