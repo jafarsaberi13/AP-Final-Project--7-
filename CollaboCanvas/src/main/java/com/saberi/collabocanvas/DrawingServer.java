@@ -65,5 +65,92 @@ public class drawingServer {
 /**
  * Handles client connections and communication.
  */
+class ClientHandler implements Runnable {
+    private Socket socket;
+    private PrintWriter out;
+    private String userName;
+    /**
+     * Constructs a new {@code ClientHandler} for the specified socket.
+     *
+     * @param socket the socket for client communication.
+     */
+    public ClientHandler(Socket socket) {
+        this.socket = socket;
+    }
+    /**
+     * The main execution method for the client handler.
+     * Manages communication with the client and broadcasts messages.
+     */
+    @Override
+    public void run() {
+        try (
+                InputStream input = socket.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                OutputStream output = socket.getOutputStream();
+                PrintWriter writer = new PrintWriter(output, true)
+        ) {
+            this.out = writer;
+            JSONParser parser = new JSONParser();
+            String jsonString;
 
+            // Ask the client for their username
+            out.println("Enter your username:");
+            this.userName = reader.readLine();
+
+            // Add the user to the list of online users and send the update to all clients
+            synchronized (drawingServer.onlineUsers) {
+                drawingServer.onlineUsers.add(userName);
+            }
+
+            while ((jsonString = reader.readLine()) != null) {
+                try {
+                    JSONObject obj = (JSONObject) parser.parse(jsonString);
+                    System.out.println("Received: " + obj.toJSONString());
+
+                    // Check if the request is a save action
+                    if ("save".equals(obj.get("action"))) {
+                        saveCanvasData(obj);
+                    } else {
+                        // Broadcast the drawing action to other clients
+                        drawingServer.broadcast(obj, this);
+                    }
+                } catch (ParseException e) {
+                    System.out.println("Invalid JSON received:");
+                    e.printStackTrace();
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Connection error:");
+            e.printStackTrace();
+        } finally {
+            closeConnection();
+        }
+    }
+
+    /**
+     * Closes the connection and cleans up resources.
+     */
+    private void closeConnection() {
+        try {
+            // Remove the client from the online users list when they disconnect
+            if (userName != null) {
+                synchronized (drawingServer.onlineUsers) {
+                    drawingServer.onlineUsers.remove(userName);
+                }
+            }
+            //drawingServer.sendOnlineUsers();  // Send the updated list of online users
+
+            drawingServer.removeClient(this);
+            socket.close();
+            System.out.println("Client disconnected.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    /**
+     * Sends a JSON message to the connected client.
+     *
+     * @param message the JSON message to send.
+     */
+   
 }
