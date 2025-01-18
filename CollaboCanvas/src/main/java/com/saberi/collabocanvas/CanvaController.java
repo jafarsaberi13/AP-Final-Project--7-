@@ -224,6 +224,7 @@ public class CanvaController {
 
     private List<TextShape> textShapes = new ArrayList<>();
     private BufferedReader in;
+
     /**
      * Initializes the canvas, its tools, and event handlers.
      */
@@ -298,3 +299,35 @@ public class CanvaController {
             }
         });
     }
+    /**
+     * Sends a message to the server.
+     *
+     * @param message The message to be sent.
+     */
+    private void sendMessageToServer(String message) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("text", message);
+        if (out1 != null) {
+            out1.println(jsonObject.toJSONString());  // Send the message to the server
+        }
+    }
+    /**
+     * Appends a message to the chat TextArea.
+     *
+     * @param message The message to append.
+     */
+    // Method to append the message to the TextArea
+    private void appendMessageToTextArea(String message) {
+        messageTextArea.appendText(message + "\n");  // Add the message to the TextArea with a newline
+        messageTextArea.setScrollTop(Double.MAX_VALUE);  // Scroll to the bottom of the TextArea
+    }
+    /**
+     * Handles the erasing of shapes on the canvas.
+     *
+     * @param x The X-coordinate of the eraser position.
+     * @param y The Y-coordinate of the eraser position.
+     */
+    private void eraseShape(double x, double y) {
+        shapes.removeIf(shape -> shape.intersects(x, y, penSize, penSize)); // Remove shapes in eraser area
+    }
+}
