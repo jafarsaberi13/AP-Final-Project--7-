@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * Controller class for the collaborative canvas application, responsible for handling user interactions
  * and managing the drawing functionalities on the canvas.
@@ -299,6 +300,7 @@ public class CanvaController {
             }
         });
     }
+
     /**
      * Sends a message to the server.
      *
@@ -311,6 +313,7 @@ public class CanvaController {
             out1.println(jsonObject.toJSONString());  // Send the message to the server
         }
     }
+
     /**
      * Appends a message to the chat TextArea.
      *
@@ -321,6 +324,7 @@ public class CanvaController {
         messageTextArea.appendText(message + "\n");  // Add the message to the TextArea with a newline
         messageTextArea.setScrollTop(Double.MAX_VALUE);  // Scroll to the bottom of the TextArea
     }
+
     /**
      * Handles the erasing of shapes on the canvas.
      *
@@ -331,8 +335,11 @@ public class CanvaController {
         shapes.removeIf(shape -> shape.intersects(x, y, penSize, penSize)); // Remove shapes in eraser area
     }
 
-    gles the pen drawing mode.
+    gles the
+    pen drawing
+    mode .
      */
+
     private void togglePenMode() {
         if ("pen".equals(currentMode)) {
             deactivateAllModes(); // Deactivate if already in pen mode
@@ -341,6 +348,7 @@ public class CanvaController {
             updateButtonStyles();
         }
     }
+
     /**
      * Toggles the eraser mode.
      */
@@ -352,6 +360,7 @@ public class CanvaController {
             updateButtonStyles();
         }
     }
+
     /**
      * Clears the canvas and resets drawing settings.
      */
@@ -367,6 +376,7 @@ public class CanvaController {
         currentMode = "";
         updateButtonStyles();
     }
+
     /**
      * Toggles the mode for drawing shapes.
      *
@@ -388,8 +398,14 @@ public class CanvaController {
         updateButtonStyles();
     }
 
-    ates the styles of all tool buttons based on the current mode.
+    ates the
+    styles of
+    all tool
+    buttons based
+    on the
+    current mode.
             */
+
     private void updateButtonStyles() {
         // Update pen and eraser button styles
         penButton.setStyle(
@@ -407,6 +423,7 @@ public class CanvaController {
         circleButton.setStyle("circle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
         triangleButton.setStyle("triangle".equals(currentMode) ? "-fx-background-color: #0078d7; -fx-text-fill: white;" : "");
     }
+
     /**
      * Adds text to the canvas.
      *
@@ -425,6 +442,7 @@ public class CanvaController {
         // Store text as a shape
         shapes.add(new TextShape(x, y, text, penColor)); // Add text as a shape
     }
+
     /**
      * Configures the canvas for drawing, including event handlers for mouse actions.
      *
@@ -562,6 +580,7 @@ public class CanvaController {
             }
         });
     }
+
     /**
      * Connects to the server using the specified host and port.
      * Establishes input and output streams for communication.
@@ -636,6 +655,7 @@ public class CanvaController {
             }
         }).start();
     }
+
     /**
      * Updates the canvas based on received JSON data.
      *
@@ -825,6 +845,7 @@ public class CanvaController {
 
         return null; // Return null if Canvas is not found
     }
+
     /**
      * Retrieves the primary {@code Stage} of the application.
      *
@@ -856,6 +877,7 @@ public class CanvaController {
         // Send the data to the server
         out.println(jsonObject.toJSONString());
     }
+
     /**
      * Sends shape data to the server in JSON format.
      *
@@ -897,7 +919,224 @@ public class CanvaController {
      * @param text the text content.
      */
      */
-    
+
+    private void handleSave() {
+        // Prompt user for file name
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Save Canvas");
+        dialog.setHeaderText("Enter a name for the file:");
+        dialog.setContentText("File Name:");
+
+        dialog.showAndWait().ifPresent(fileName -> {
+            if (fileName.isEmpty()) {
+                System.out.println("File name cannot be empty.");
+                return;
+            }
+
+            // Prepare JSON data for the canvas
+            JSONObject canvasData = new JSONObject();
+            JSONArray shapesArray = new JSONArray();
+
+            for (Shape shape : shapes) {
+                JSONObject shapeJson = shape.toJson(); // Each shape should have a toJson() method
+                shapesArray.add(shapeJson);
+            }
+            canvasData.put("action", "save");
+            canvasData.put("fileName", fileName);
+            canvasData.put("shapes", shapesArray);
+
+            // Send data to server
+            sendSaveRequestToServer(canvasData);
+        });
+    }
+
+    /**
+     * Sends the canvas save request to the server.
+     *
+     * @param canvasData the JSON object containing canvas data.
+     */
+    private void sendSaveRequestToServer(JSONObject canvasData) {
+        try {
+            out.println(canvasData.toJSONString());
+            System.out.println("Canvas data sent to server for saving.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to send canvas data to server.");
+        }
+    }
+
+    /**
+     * Opens a canvas file from a specified folder and loads it onto the canvas.
+     */
+    private void handleOpenFromFolder() {
+        try {
+            // Specify the folder containing saved files
+            File folder = new File("E:\\Canva\\savedFiles");
+
+            if (!folder.exists() || !folder.isDirectory()) {
+                System.out.println("The specified folder does not exist or is not a directory.");
+                return;
+            }
+
+            // List all JSON files in the folder
+            File[] jsonFiles = folder.listFiles((dir, name) -> name.endsWith(".json"));
+            if (jsonFiles == null || jsonFiles.length == 0) {
+                System.out.println("No JSON files found in the specified folder.");
+                return;
+            }
+
+            // Show a FileChooser dialog to let the user select a file
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Open Saved Canvas");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+            fileChooser.setInitialDirectory(folder);
+
+            // Show the file chooser and get the selected file
+            File selectedFile = fileChooser.showOpenDialog(getPrimaryStage());
+            if (selectedFile == null) {
+                System.out.println("No file selected.");
+                return;
+            }
+
+            // Parse the selected JSON file and load the canvas data
+            loadCanvasFromFile(selectedFile);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to open and load the file.");
+        }
+    }
+
+    /**
+     * Loads a canvas file from the specified file and renders it on the canvas.
+     *
+     * @param file the file containing saved canvas data.
+     */
+    private void loadCanvasFromFile(File file) {
+        try (FileReader reader = new FileReader(file)) {
+            JSONParser parser = new JSONParser();
+            JSONObject canvasData = (JSONObject) parser.parse(reader);
+
+            // Clear the current canvas
+            gc.clearRect(0, 0, DrawingCanvas.getWidth(), DrawingCanvas.getHeight());
+            shapes.clear();
+
+            // Parse and load shapes
+            JSONArray shapesArray = (JSONArray) canvasData.get("shapes");
+            for (Object shapeObj : shapesArray) {
+                JSONObject shapeJson = (JSONObject) shapeObj;
+                System.out.println(shapeJson);
+                Shape shape = Shape.fromJson(shapeJson); // Ensure your Shape class has a `fromJson` method
+                shapes.add(shape);
+                shape.draw(gc); // Draw each shape on the canvas
+            }
+
+            System.out.println("Canvas loaded successfully from " + file.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to load the canvas data from file.");
+        }
+    }
+
+    /**
+     * Connects to the messaging server at the specified host and port.
+     *
+     * @param host the server's hostname or IP address.
+     * @param port the server's port number.
+     */
+    // Method to connect to the server
+    public void connectToServerMesseging(String host, int port) {
+        try {
+            // Establish the connection to the server
+            socket1 = new Socket(host, port);
+
+            // Set up the input and output streams
+            out1 = new PrintWriter(socket1.getOutputStream(), true);
+            in1 = new BufferedReader(new InputStreamReader(socket1.getInputStream()));
+
+
+            // Once connected, log a success message
+            System.out.println("Connected to server at " + host + ":" + port);
+
+            // Start listening for incoming messages from the server
+            startListening1();
+
+        } catch (IOException e) {
+            System.out.println("Failed to connect to the server: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Starts listening for incoming messages from the server.
+     */
+    // Method to start listening for messages from the server
+    void startListening1() {
+        new Thread(() -> {
+            try {
+                String message;
+                while ((message = in1.readLine()) != null) {
+                    // Display the message from the server (can be updated to use a GUI or logger)
+                    System.out.println(message);
+
+                    JSONParser parser = new JSONParser();
+                    try {
+                        JSONObject object = (JSONObject) parser.parse(message);
+                        appendMessageToTextArea((String) object.get("text"));
+                    } catch (ParseException parseException) {
+                        parseException.printStackTrace();
+                    }
+                }
+            } catch (IOException e) {
+                System.out.println("Error reading from server: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Displays the list of online clients by reading data from a local JSON file.
+     */
+    public void showOnlineClients() {
+        File file = new File("E:/JAVA/CollaboCanvas/DataFile.json");
+        System.out.println("clients added");
+        // Ensure the file exists before attempting to read it
+        if (!file.exists()) {
+            System.out.println("File not found: " + file.getAbsolutePath());
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            // Use a JSONParser to parse each line
+            JSONParser parser = new JSONParser();
+            ObservableList<String> clientList = FXCollections.observableArrayList(); // List to hold usernames
+            String str;
+
+            while ((str = reader.readLine()) != null) {
+                System.out.println("clients read");
+                try {
+                    // Parse the JSON object for each line
+                    JSONObject jsonObject = (JSONObject) parser.parse(str);
+                    String username = (String) jsonObject.get("Username");
+                    System.out.println("usernae " + username);
+                    // Add the username to the ObservableList
+                    if (username != null) {
+                        clientList.add(username);
+                    }
+                } catch (ParseException e) {
+                    System.out.println("Error parsing line: " + str);
+                }
+            }
+
+            // Update the ListView on the JavaFX Application Thread
+            Platform.runLater(() -> {
+                connectedClientList.setItems(clientList);  // Set the list of usernames to the ListView
+                for (String client : connectedClientList.getItems()) {
+                    System.out.println(client);
+                }
+            });
+        } catch (IOException e) {
+            System.out.println("Error reading the file: " + file.getAbsolutePath());
+            e.printStackTrace();
+        }
+    }
 }
 
 
