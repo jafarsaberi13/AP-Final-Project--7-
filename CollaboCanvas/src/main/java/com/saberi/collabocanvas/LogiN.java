@@ -117,3 +117,91 @@ public class logiN extends Application {
 
         return layout;
     }
+    /**
+     * Creates the login page layout with input fields and buttons.
+     *
+     * @param stage the primary stage of the application.
+     * @return a {@link BorderPane} containing the login page layout.
+     */
+    private BorderPane createLoginPage(Stage stage) {
+        BorderPane layout = new BorderPane();
+        layout.setStyle("-fx-background-color: #87CEEB;");
+
+        VBox contentBox = styledVBox();
+
+        Label title = new Label("Login");
+        title.setFont(Font.font(24));
+        title.setTextFill(Color.WHITE);
+        contentBox.getChildren().add(title);
+
+        GridPane f1 = styledGridPane();
+
+        Label nameL = styledLabel("Username:");
+        TextField nameField = styledTextField();
+
+        Label passL = styledLabel("Password:");
+        PasswordField passField = styledPasswordField();
+
+        Label errorLabel = new Label();
+        errorLabel.setFont(Font.font(12));
+        errorLabel.setTextFill(Color.RED);
+        errorLabel.setVisible(false);
+
+        errorLabel.setVisible(false); // Hide the error label if no error
+
+        Button Button = styledButton("Login");
+        Button.setOnAction(e -> {
+            String username = nameField.getText();
+            String password = passField.getText();
+
+            try {
+                String response = communicateWithServer("LOGIN", username, "", password);
+
+                if ("0".equals(response)) {
+
+                    try {
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/saberi/collabocanvas/Canva.fxml"));
+                        AnchorPane root = loader.load();
+
+                        // Get the controller reference
+                        CanvaController controller = loader.getController();
+
+                        // Connect to the server when the application starts
+                        String serverHost = "localhost";  // Use the server's address
+                        int serverPort = 7777;  // Use the server's port
+                        controller.connectToServer(serverHost, serverPort);
+                        controller.connectToServerMesseging(serverHost, 1111);
+
+                        // Start listening for server messages
+                        controller.startListening();
+
+                        // Set the scene and show the stage
+                        Scene scene = new Scene(root, 800, 600);
+                        stage.setScene(scene);
+                        stage.setTitle("Drawing and Chat Application");
+
+                        stage.show();
+                    } catch (Exception ex) {
+                        showAlert(Alert.AlertType.ERROR, "Error", "Failed to load application: " + ex.getMessage());
+                    }
+                } else {
+                    errorLabel.setText("Username/Password is not Valid");
+                    errorLabel.setVisible(true);
+                }
+            } catch (Exception ex) {
+                showAlert(Alert.AlertType.ERROR, "Error", "Login failed: " + ex.getMessage());
+            }
+        });
+
+        f1.add(nameL, 0, 0);
+        f1.add(nameField, 1, 0);
+        f1.add(passL, 0, 1);
+        f1.add(passField, 1, 1);
+        f1.add(errorLabel, 1, 2);
+        f1.add(Button, 1, 3);
+
+        contentBox.getChildren().add(f1);
+        layout.setCenter(contentBox);
+
+        return layout;
+    }
