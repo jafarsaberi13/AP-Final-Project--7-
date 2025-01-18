@@ -152,5 +152,57 @@ class ClientHandler implements Runnable {
      *
      * @param message the JSON message to send.
      */
-   
+    public void sendMessage(JSONObject message) {
+        out.println(message.toJSONString());
+    }
+    /**
+     * Saves the canvas data to a JSON file.
+     *
+     * @param obj the JSON object containing canvas data.
+     */
+    private void saveCanvasData(JSONObject obj) {
+        try {
+            // Extract file name and shapes data from the JSON object
+            String fileName = (String) obj.get("fileName");
+            JSONArray shapesArray = (JSONArray) obj.get("shapes");
+            String filePath = "E:\\Canva\\savedFiles\\" + fileName + ".json"; // Full path
+
+            // Create or overwrite the file
+            File file = null;
+            try {
+                file = new File(filePath);
+                if (file.createNewFile()) {
+                    System.out.println("file created");
+                } else {
+                    System.out.println("existed");
+                }
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+            try (FileWriter fileWriter = new FileWriter(file)) {
+                JSONObject canvasData = new JSONObject();
+                canvasData.put("shapes", shapesArray);
+
+                // Write the JSON data to the file
+                fileWriter.write(canvasData.toJSONString());
+                fileWriter.flush();
+            }
+
+            System.out.println("Canvas data saved to " + file.getAbsolutePath());
+            // Optionally send a confirmation message back to the client
+            JSONObject response = new JSONObject();
+            response.put("status", "success");
+            response.put("message", "Canvas saved as " + fileName + ".json");
+            sendMessage(response);
+        } catch (IOException e) {
+            System.out.println("Error saving canvas data:");
+            e.printStackTrace();
+
+            // Send an error message back to the client
+            JSONObject errorResponse = new JSONObject();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Failed to save canvas data.");
+            sendMessage(errorResponse);
+        }
+    }
 }
