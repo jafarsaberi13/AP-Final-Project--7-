@@ -108,4 +108,91 @@ public class Server {
             ioException.printStackTrace();
         }
     }
+    /**
+     * Validates a JSON object based on its type (REGISTER or LOGIN).
+     *
+     * @param jsonObject The JSON object to validate.
+     * @return {@code 0} if validation is successful, or an error code otherwise.
+     */
+    public static int check(JSONObject jsonObject) {
+        if (((String) jsonObject.get("Type")).equals("REGISTER")) {
+            int tmp = checkUserName((String) jsonObject.get("Username"));
+            if (tmp == 0) {
+                int tmp1 = checkEmail((String) jsonObject.get("Email"));
+                if (tmp1 == 0) {
+                    int tmp2 = checkPassword((String) jsonObject.get("Password"));
+                    if (tmp2 == 0) {
+                        return 0;
+                    } else {
+                        return tmp2;
+                    }
+                } else {
+                    return tmp1;
+                }
+            } else {
+                return tmp;
+            }
+        } else { // if register be Log in
+            return readData(jsonObject);
+        }
+    }
+    /**
+     * Reads data from the JSON file and validates the login credentials.
+     *
+     * @param jsonObject The JSON object containing the login credentials.
+     * @return {@code 0} if login is successful, or {@code 1} otherwise.
+     */
+    public static int readData(JSONObject jsonObject) {
+        JSONParser parser = new JSONParser();
+        String username = jsonObject.get("Username").toString();
+        String password = jsonObject.get("Password").toString();
+
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader("DataFile.json"));
+            String jsonString = "";
+            while ((jsonString = reader.readLine()) != null) {
+                JSONObject jsonObject1 = (JSONObject) parser.parse(jsonString);
+                if (jsonObject1.get("Username").equals(username)) {
+                    if (jsonObject1.get("Password").equals(password)) {
+                        return 0;
+                    }
+                }
+            }
+            reader.close();
+        } catch (FileNotFoundException fileNotFoundException) {
+            fileNotFoundException.printStackTrace();
+        } catch (ParseException parseException) {
+            parseException.printStackTrace();
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+        return 1;
+    }
+    public static int checkUserName(String str) {
+        String usernameRegex = "^[a-zA-Z][a-zA-Z0-9._]{2,14}$";
+        return str.matches(usernameRegex) ? 0 : 1;
+    }
+    /**
+     * Validates the format of an email address.
+     *
+     * @param email The email to validate.
+     * @return {@code 0} if the email is valid, or {@code 2} otherwise.
+     */
+    public static int checkEmail(String email) {
+        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@" +
+                "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+        return email.matches(emailRegex) ? 0 : 2;
+    }
+    /**
+     * Validates the format of a password.
+     *
+     * @param password The password to validate.
+     * @return {@code 0} if the password is valid, or {@code 3} otherwise.
+     */
+    public static int checkPassword(String password) {
+        if (password == null) {
+            return 3;
+        }
+        return 0;
+    }
 }
