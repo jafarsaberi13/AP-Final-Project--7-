@@ -62,5 +62,78 @@ public class MessagingServer {
  * The ClientConnection class handles the interaction between the server and a connected client.
  * It processes incoming messages from the client and broadcasts them to other clients.
  */
+class ClientConnection implements Runnable {
+    private Socket clientSocket;
+    private PrintWriter writer;
+    private BufferedReader reader;
+    private String username;
+    /**
+     * Constructs a new ClientConnection instance.
+     *
+     * @param clientSocket The socket connection to the client.
+     */
+    public ClientConnection(Socket clientSocket) {
+        this.clientSocket = clientSocket;
+    }
+    /**
+     * The main method for processing client messages and handling client interaction.
+     */
+    @Override
+    public void run() {
+        try (
+                InputStream inputStream = clientSocket.getInputStream();
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                OutputStream outputStream = clientSocket.getOutputStream();
+                PrintWriter printWriter = new PrintWriter(outputStream, true)
+        ) {
+            this.writer = printWriter;
+            this.reader = bufferedReader;
 
+            // Read and broadcast messages from the client
+            String clientMessage;
+            while ((clientMessage = bufferedReader.readLine()) != null) {
+                try {
+                    // Parse the incoming message as JSON directly
+                    JSONObject jsonMessage = (JSONObject) new JSONParser().parse(clientMessage);
+
+                    // Broadcast the parsed message to all other clients
+                    MessagingServer.sendToAllClients(jsonMessage, this);
+                } catch (org.json.simple.parser.ParseException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Connection error with client: " + e.getMessage());
+        } finally {
+            closeConnection();
+        }
+    }
+    /**
+     * Closes the client connection and broadcasts a disconnect message to other clients.
+     */
+    private void closeConnection() {
+        try {
+            System.out.println(username + " has left the chat!");
+
+            // Broadcast the user's exit message
+            JSONObject exitMessage = new JSONObject();
+            exitMessage.put("action", "user_left");
+            exitMessage.put("username", username);
+            MessagingServer.sendToAllClients(exitMessage, this);
+
+            MessagingServer.removeClientConnection(this);
+            clientSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    /**
+     * Sends a JSON message to the connected client.
+     *
+     * @param jsonMessage The JSON-formatted message to send.
+     */
+    void sendJsonMessage(JSONObject jsonMessage) {
+        writer.println(jsonMessage.toJSONString());
+    }
 }
