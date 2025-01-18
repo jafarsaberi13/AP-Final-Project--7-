@@ -205,3 +205,88 @@ public class logiN extends Application {
 
         return layout;
     }
+    /**
+     * Creates a styled {@link VBox} layout with default spacing and alignment.
+     *
+     * @return a {@link VBox} with spacing of 20, padding of 15, and center alignment.
+     */
+    private VBox styledVBox() {
+        VBox vbox = new VBox(20);
+        vbox.setPadding(new Insets(15));
+        vbox.setAlignment(Pos.CENTER);
+        return vbox;
+    }
+    /**
+     * Creates a styled {@link GridPane} layout with default spacing and alignment.
+     *
+     * @return a {@link GridPane} with center alignment, 15-pixel padding, and
+     *         horizontal/vertical gaps of 10 pixels.
+     */
+    private GridPane styledGridPane() {
+        GridPane g = new GridPane();
+        g.setAlignment(Pos.CENTER);
+        g.setPadding(new Insets(15));
+        g.setHgap(10);
+        g.setVgap(10);
+        return g;
+    }
+    /**
+     * Creates a styled {@link Label} with a custom font size and color.
+     *
+     * @param text the text to display on the label.
+     * @return a {@link Label} with 14px font size and black text color.
+     */
+    private Label styledLabel(String text) {
+        Label label = new Label(text);
+        label.setStyle("-fx-font-size: 14px; -fx-text-fill: black;");
+        return label;
+    }
+    /**
+     * Creates a styled {@link TextField} with custom border and background color.
+     *
+     * @return a {@link TextField} styled with black borders, rounded corners,
+     *         and a light gray background.
+     */
+    private TextField styledTextField() {
+        TextField textField = new TextField();
+        textField.setStyle("-fx-border-color: black; -fx-border-radius: 5; -fx-background-color: #f0f0f0;");
+        return textField;
+    }
+    /**
+     * Creates a styled {@link PasswordField} with custom border and background color.
+     *
+     * @return a {@link PasswordField} styled with black borders, rounded corners,
+     *         and a light gray background.
+     */
+    private PasswordField styledPasswordField() {
+        PasswordField pass = new PasswordField();
+        pass.setStyle("-fx-border-color: black; -fx-border-radius: 5; -fx-background-color: #f0f0f0;");
+        return pass;
+    }
+    /**
+     * Creates a styled {@link Button} with custom colors and hover effects.
+     *
+     * @param text the text to display on the button.
+     * @return a {@link Button} styled with a blue background, white text,
+     *         and hover effects to change background and text color.
+     */
+    private Button styledButton(String text) {
+        Button button = new Button(text);
+        button.setStyle("-fx-background-color: #4682B4; -fx-text-fill: white;");
+        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #5A9BD4; -fx-text-fill: black;"));
+        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #4682B4; -fx-text-fill: white;"));
+        return button;
+    }
+    /**
+     * Displays an alert dialog with the specified parameters.
+     *
+     * @param type    the type of the alert (e.g., INFORMATION, ERROR).
+     * @param title   the title of the alert dialog.
+     * @param message the message to display in the alert dialog.
+     */
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
