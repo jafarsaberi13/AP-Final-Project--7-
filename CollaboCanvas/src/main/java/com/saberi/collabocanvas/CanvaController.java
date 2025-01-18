@@ -330,4 +330,63 @@ public class CanvaController {
     private void eraseShape(double x, double y) {
         shapes.removeIf(shape -> shape.intersects(x, y, penSize, penSize)); // Remove shapes in eraser area
     }
+
+    gles the pen drawing mode.
+     */
+    private void togglePenMode() {
+        if ("pen".equals(currentMode)) {
+            deactivateAllModes(); // Deactivate if already in pen mode
+        } else {
+            currentMode = "pen";
+            updateButtonStyles();
+        }
+    }
+    /**
+     * Toggles the eraser mode.
+     */
+    private void toggleEraserMode() {
+        if ("eraser".equals(currentMode)) {
+            deactivateAllModes(); // Deactivate if already in eraser mode
+        } else {
+            currentMode = "eraser";
+            updateButtonStyles();
+        }
+    }
+    /**
+     * Clears the canvas and resets drawing settings.
+     */
+    @FXML
+    private void handleClearCanvas() {
+        // Clear the canvas
+        gc.clearRect(0, 0, DrawingCanvas.getWidth(), DrawingCanvas.getHeight());
+
+        // Clear the shapes list
+        shapes.clear();
+
+        // Optionally, reset other settings (e.g., pen size, color, mode)
+        currentMode = "";
+        updateButtonStyles();
+    }
+    /**
+     * Toggles the mode for drawing shapes.
+     *
+     * @param shape The shape to toggle (e.g., "rectangle", "circle").
+     */
+    private void toggleShapeMode(String shape) {
+        if (currentMode.equals(shape)) {
+            // Deactivate shape mode if clicked again
+            deactivateAllModes();
+        } else {
+            // Activate the selected shape mode
+            currentMode = shape;
+            updateButtonStyles();
+        }
+    }
+
+    private void deactivateAllModes() {
+        currentMode = ""; // Reset the mode to default (no active mode)
+        updateButtonStyles();
+    }
+
 }
+
