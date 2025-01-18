@@ -569,5 +569,270 @@ public class CanvaController {
      * @param host The hostname or IP address of the server to connect to.
      * @param port The port number on which the server is listening.
      */
+    public void connectToServer(String host, int port) {
+        try {
+            // Establish the connection to the server
+            socket = new Socket(host, port);
+
+            // Set up the input and output streams
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // Once connected, log a success message
+            System.out.println("Connected to server at " + host + ":" + port);
+
+            // Start listening for incoming data from the server
+            startListening();
+
+        } catch (IOException e) {
+            System.out.println("Failed to connect to the server: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Listens for messages from the server and processes them in a separate thread.
+     * Handles actions such as drawing shapes, updating text, or other client-specific updates.
+     */
+    public void startListening() {
+        List<Double> tempPointsX = new ArrayList<>();
+        List<Double> tempPointsY = new ArrayList<>();
+        new Thread(() -> {
+            try {
+                String message;
+                while ((message = in.readLine()) != null) {
+                    // Process the incoming message (expected in JSON format)
+                    JSONParser parser = new JSONParser();
+                    JSONObject jsonResponse = (JSONObject) parser.parse(message);
+                    System.out.println("Received from server: " + jsonResponse.toString());
+
+                    // Here you can parse the drawing data and update the canvas
+                    String action = (String) jsonResponse.get("action"); // Action should be "draw" or other actions
+                    if ("draw".equals(action)) {
+                        // Parse drawing data and display it on the canvas
+                        double x = ((Number) jsonResponse.get("x")).doubleValue();  // Casting to Number to retrieve double value
+                        double y = ((Number) jsonResponse.get("y")).doubleValue();
+                        String color = (String) jsonResponse.get("color");
+                        double size = ((Number) jsonResponse.get("size")).doubleValue(); // Get the pen size
+                        tempPointsX.clear();
+                        tempPointsY.clear();
+                        tempPointsX.add(x);
+                        tempPointsY.add(y);
+
+                        shapes.add(new FreehandShape(new ArrayList<>(tempPointsX), new ArrayList<>(tempPointsY), size));
+                        // Call your method to update the drawing on the canvas with received data
+                        Platform.runLater(() -> updateCanvas(jsonResponse)); // Ensure UI update happens on the JavaFX thread
+                    } else if ("shape".equals(action)) {
+                        // Handle shape drawing
+                        Platform.runLater(() -> updateCanvas(jsonResponse));
+                    } else if ("textdata".equals(action)) {
+                        // Handle shape drawing
+                        Platform.runLater(() -> updateCanvas(jsonResponse));
+                    }
+                }
+            } catch (IOException e) {
+                System.out.println("Error while listening for server messages: " + e.getMessage());
+            } catch (ParseException parseException) {
+                parseException.printStackTrace();
+            }
+        }).start();
+    }
+    /**
+     * Updates the canvas based on received JSON data.
+     *
+     * @param json The JSONObject containing drawing information (shapes, colors, sizes, etc.).
+     */
+    private void updateCanvas(JSONObject json) {
+        if (json != null) {
+            String action = (String) json.get("action");
+            final double x = ((Number) json.get("x")).doubleValue();
+            final double y = ((Number) json.get("y")).doubleValue();
+
+            List<Double> tempPointsX = new ArrayList<>();
+            List<Double> tempPointsY = new ArrayList<>();
+
+            tempPointsX.clear();
+            tempPointsY.clear();
+            tempPointsX.add(x);
+            tempPointsY.add(y);
+
+            if ("shape".equals(action)) {
+                double size = 1.0; // Default stroke width
+
+                final String type = (String) json.get("type");
+
+                final String color = ((String) json.get("strokeColor")).replace("0x", "#"); // Convert color
+                final double strokeWidth = 1.0; // Default stroke size
+
+                // Shape-specific dimensions
+                final double radius = "circle".equals(type) && json.containsKey("radius")
+                        ? ((Number) json.get("radius")).doubleValue()
+                        : 0.0;
+                final double width = ("rectangle".equals(type) || "square".equals(type)) && json.containsKey("width")
+                        ? ((Number) json.get("width")).doubleValue()
+                        : 0.0;
+                final double height = "rectangle".equals(type) && json.containsKey("height")
+                        ? ((Number) json.get("height")).doubleValue()
+                        : 0.0;
+
+                // Run drawing logic on JavaFX Application Thread
+                javafx.application.Platform.runLater(() -> {
+                    try {
+                        Canvas canvas = (Canvas) getCanvasFromScene(); // Get the canvas
+                        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+                        // Configure stroke properties
+                        gc.setStroke(Color.web(color));
+                        gc.setLineWidth(strokeWidth);
+
+                        // Draw the requested shape
+                        switch (type) {
+                            case "circle":
+                                redrawAllShapes();
+                                gc.strokeOval(x - radius, y - radius, radius * 2, radius * 2);
+                                shapes.add(new CircleShape(x, y, radius, "circle", Color.WHITE, Color.WHITE));
+                                break;
+
+                            case "rectangle":
+                                redrawAllShapes();
+                                gc.strokeRect(x, y, width, height);
+                                shapes.add(new RectangleShape(x, y, width, height, "rectangle", Color.WHITE, Color.WHITE));
+                                break;
+
+                            case "square":
+                                redrawAllShapes();
+                                // Calculate square size and ensure valid dimensions
+                                double squareSize = Math.abs(width);
+
+                                if (squareSize == 0) {
+                                    System.out.println("Square width is zero, cannot draw.");
+                                    break;
+                                }
+                                gc.strokeRect(x, y, squareSize, squareSize);
+                                System.out.println("Square drawn at (" + x + ", " + y + ") with size: " + squareSize);
+                                shapes.add(new SquareShape(size, x, y, "square", Color.WHITE, Color.WHITE));
+                                break;
+                            case "triangle":
+
+                                redrawAllShapes();
+                                // Stop drawing if the triangle becomes too small
+                                if (currentBase < 10 || currentHeight < 10) {
+                                    System.out.println("Triangle size is too small to draw further.");
+                                    break;
+                                }
+
+                                // Calculate the vertices for the reversed triangle
+                                double[] xPointsReversed = {x, x - currentBase / 2, x + currentBase / 2};
+                                double[] yPointsReversed = {y + currentHeight, y, y};
+
+                                // Draw the triangle
+                                gc.setFill(Color.TRANSPARENT); // Transparent fill
+                                gc.strokePolygon(xPointsReversed, yPointsReversed, 3);
+
+                                // Shrink the triangle dimensions for the next draw
+                                currentBase *= scaleFactor;
+                                currentHeight *= scaleFactor;
+
+                                // Log the triangle dimensions for debugging
+                                System.out.println("Triangle drawn at (" + x + ", " + y + ") reversed with base: " + currentBase + " and height: " + currentHeight);
+                                shapes.add(new TriangleShape(x, y, currentBase, currentHeight, "triangle", Color.WHITE, Color.WHITE));
+                                break;
+                            default:
+                                System.out.println("Unsupported shape type: " + type);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error while drawing shape: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                });
+            } else if ("draw".equals(action)) {
+                double size = (double) json.get("size"); // Default size for shapes (adjust if needed)
+                String color = (String) json.get("color");
+                // Handle freehand drawing or continuous drawing
+                // Add new coordinates to the freehand list
+                shapes.add(new FreehandShape(new ArrayList<>(tempPointsX), new ArrayList<>(tempPointsY), size));
+                javafx.application.Platform.runLater(() -> {
+                    // Get the GraphicsContext from the canvas
+                    Canvas canvas = (Canvas) getCanvasFromScene();  // Get the canvas from the scene graph
+                    GraphicsContext gc = canvas.getGraphicsContext2D();
+
+                    // Set the stroke color
+                    gc.setStroke(Color.web("#" + color.substring(2)));
+                    gc.setLineWidth(size); // Use the pen size
+
+                    // Start a new path (necessary if not already started)
+                    gc.beginPath();
+
+                    // Move to the first point (if needed) to start drawing
+                    gc.moveTo(x, y);
+
+                    // Draw the line to the new point
+                    gc.lineTo(x, y);
+                    gc.stroke();
+                });
+            } else if ("textdata".equals(action)) {
+                String text = (String) json.get("text");
+
+                double size = 20; // Size for text font
+
+
+                // Ensure that this part runs on the JavaFX Application Thread
+                javafx.application.Platform.runLater(() -> {
+                    // Get the GraphicsContext from the canvas
+                    Canvas canvas = (Canvas) getCanvasFromScene();  // Get the canvas from the scene graph
+                    GraphicsContext gc = canvas.getGraphicsContext2D();
+
+                    // Set the font size and color for the text
+                    gc.setFont(new Font(size)); // Set the font size
+                    gc.setFill(Color.BLACK); // Set text color
+
+                    // Draw the text at the specified position (x, y)
+                    gc.fillText(text, x, y);
+                });
+            }
+
+        }
+    }
+
+    /**
+     * Retrieves the primary {@code Canvas} object from the current scene hierarchy.
+     *
+     * @return the {@code Canvas} object if found; {@code null} otherwise.
+     */
+    // Helper class to store shape data
+    private Canvas getCanvasFromScene() {
+        // Get the root AnchorPane from the scene
+        AnchorPane root = (AnchorPane) getPrimaryStage().getScene().getRoot();
+
+        // Find the SplitPane from the root AnchorPane
+        SplitPane splitPane = (SplitPane) root.getChildren().get(1);
+
+        // Access the left AnchorPane in the SplitPane
+        AnchorPane leftPane = (AnchorPane) splitPane.getItems().get(0);
+
+        // Find the Pane containing the Canvas
+        Pane canvasPane = (Pane) leftPane.getChildren().stream()
+                .filter(node -> node instanceof Pane)
+                .findFirst()
+                .orElse(null);
+
+        if (canvasPane != null) {
+            // Find the Canvas inside the Pane
+            return (Canvas) canvasPane.getChildren().stream()
+                    .filter(node -> node instanceof Canvas)
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        return null; // Return null if Canvas is not found
+    }
+    /**
+     * Retrieves the primary {@code Stage} of the application.
+     *
+     * @return the primary {@code Stage}.
+     */
+    private Stage getPrimaryStage() {
+        return (Stage) Stage.getWindows().filtered(window -> window instanceof Stage).get(0);
+    }
 }
+
 
